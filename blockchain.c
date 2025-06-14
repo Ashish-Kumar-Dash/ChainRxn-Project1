@@ -2,63 +2,97 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-// TODO: Implement a simple hash function or use a real one
-void simple_hash(char *input, char *output) {
-    // Simulate a hash by processing the input string
+void simple_hash(char *input, char *output)
+{
+    unsigned int hash = 0;
+    for (int i = 0; i < strlen(input); i++)
+    {
+        hash = hash * 31 + input[i];
+    }
+    sprintf(output, "%u", hash);
 }
 
-// Block structure
-typedef struct Block {
+typedef struct Block
+{
     int index;
     char timestamp[100];
     char data[256];
     char previousHash[256];
     char hash[256];
-    struct Block* next;
+    struct Block *next;
 } Block;
-
-// TODO: Fill this to get current time in string format
-void get_timestamp(char *buffer) {
-    // Fill buffer with current date-time
+void get_timestamp(char *buffer)
+{
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    strftime(buffer, 100, "%Y-%m-%d %H:%M:%S", t);
 }
-
-// TODO: Implement logic to create a new block
-Block* create_block(int index, char *data, char *previousHash) {
-    Block* newBlock = (Block*)malloc(sizeof(Block));
-    
-    // Fill the block fields (index, data, timestamp, previousHash)
-    
-    // Create a string from block data to hash
-    
-    // Call simple_hash on the string and store in block->hash
+Block *create_block(int index, char *data, char *previousHash)
+{
+    Block *newBlock = (Block *)malloc(sizeof(Block));
+    newBlock->index = index;
+    strcpy(newBlock->data, data);
+    get_timestamp(newBlock->timestamp);
+    strcpy(newBlock->previousHash, previousHash);
+    char toHash[1024];
+    snprintf(toHash, sizeof(toHash), "%d%s%s%s", index, newBlock->timestamp, data, previousHash);
+    simple_hash(toHash, newBlock->hash);
 
     newBlock->next = NULL;
     return newBlock;
 }
 
-// TODO: Implement logic to add a block to the chain
-void add_block(Block **head, char *data) {
-    // Traverse to the last block
-    // Get index and previousHash
-    // Call create_block and link the new block
+void add_block(Block **head, char *data)
+{
+    if (*head == NULL)
+    {
+        *head = create_block(0, data, "0");
+        return;
+    }
+
+    Block *temp = *head;
+    while (temp->next != NULL)
+    {
+        temp = temp->next;
+    }
+
+    Block *newBlock = create_block(temp->index + 1, data, temp->hash);
+    temp->next = newBlock;
 }
 
-// TODO: Print all blocks in the blockchain
-void print_chain(Block *head) {
-    // Traverse the chain and print block details
+void print_chain(Block *head)
+{
+    Block *temp = head;
+    while (temp != NULL)
+    {
+        printf("Block #%d\n", temp->index);
+        printf("Timestamp: %s\n", temp->timestamp);
+        printf("Data: %s\n", temp->data);
+        printf("Previous Hash: %s\n", temp->previousHash);
+        printf("Hash: %s\n", temp->hash);
+        printf("-------------------------------\n");
+        temp = temp->next;
+    }
+}
+void free_chain(Block *head)
+{
+    Block *temp;
+    while (head != NULL)
+    {
+        temp = head;
+        head = head->next;
+        free(temp);
+    }
 }
 
-int main() {
-    Block* blockchain = NULL;
+int main()
+{
+    Block *blockchain = NULL;
 
-    // TODO: Add a few blocks with sample data
-    // add_block(&blockchain, "Genesis Block");
-    // add_block(&blockchain, "Sample transaction");
-
-    // TODO: Print the chain
-    // print_chain(blockchain);
-
-    // TODO: Free the chain
+    add_block(&blockchain, "Genesis Block");
+    add_block(&blockchain, "Alice pays Bob 10 coins");
+    add_block(&blockchain, "Bob pays Charlie 5 coins");
+    print_chain(blockchain);
+    free_chain(blockchain);
     return 0;
 }
